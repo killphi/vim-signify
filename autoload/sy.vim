@@ -72,10 +72,10 @@ function! sy#start(path) abort
   " update signs
   else
     let diff = sy#repo#get_diff_{b:sy.type}()[1]
-    if empty(diff)
-      call sy#sign#remove_all(b:sy.buffer)
-      return
-    endif
+    "if empty(diff)
+      ""call sy#sign#remove_all_signs(b:sy.buffer)
+      "return
+    "endif
     let b:sy.id_top = g:id_top
   endif
 
@@ -85,15 +85,14 @@ function! sy#start(path) abort
       call sy#highlight#line_disable()
   endif
 
-  execute 'sign place 99999 line=1 name=SignifyPlaceholder buffer='. b:sy.buffer
-  call sy#sign#remove_all(b:sy.buffer)
+  "execute 'sign place 99999 line=1 name=SignifyPlaceholder buffer='. b:sy.buffer
+  "call sy#sign#remove_all_signs(b:sy.buffer)
 
-  if !g:signify_sign_overwrite
-    call sy#sign#get_others()
-  endif
-
+  "if !g:signify_sign_overwrite
+    "call sy#sign#get_others()
+  "endif
   call sy#repo#process_diff(diff)
-  sign unplace 99999
+  "sign unplace 99999
 
   let b:sy.id_top = (g:id_top - 1)
 endfunction

@@ -173,12 +173,14 @@ endfunction
 
 " Function: #process_diff {{{1
 function! sy#repo#process_diff(diff) abort
-  let added    = 0
-  let deleted  = 0
-  let modified = 0
+  let [added, modified, deleted] = [0, 0, 0]
+  let hunks                      = []
+  let signtable                  = {}
 
   " Determine where we have to put our signs.
   for line in filter(split(a:diff, '\n'), 'v:val =~ "^@@ "')
+    let hunk = []
+
     let tokens = matchlist(line, '^@@ -\v(\d+),?(\d*) \+(\d+),?(\d*)')
 
     let old_line = str2nr(tokens[1])
@@ -186,8 +188,6 @@ function! sy#repo#process_diff(diff) abort
 
     let old_count = empty(tokens[2]) ? 1 : str2nr(tokens[2])
     let new_count = empty(tokens[4]) ? 1 : str2nr(tokens[4])
-
-    let signs = []
 
     " 2 lines added:
 
@@ -200,10 +200,13 @@ function! sy#repo#process_diff(diff) abort
       let offset = 0
 
       while offset < new_count
-        call add(signs, {
+        let line            = new_line + offset
+        let offset         += 1
+        let signtable[line] = 1
+        call add(hunk, {
+              \ 'id'  : sy#sign#get_next_id(),
               \ 'type': 'SignifyAdd',
-              \ 'lnum': new_line + offset })
-        let offset += 1
+              \ 'line': line })
       endwhile
 
     " 2 lines removed:
@@ -216,18 +219,24 @@ function! sy#repo#process_diff(diff) abort
       let deleted += old_count
 
       if new_line == 0
-        call add(signs, {
+        let signtable.1 = 1
+        call add(hunk, {
+              \ 'id'  : sy#sign#get_next_id(),
               \ 'type': 'SignifyRemoveFirstLine',
-              \ 'lnum': 1 })
+              \ 'line': 1 })
       elseif old_count <= 99
-        call add(signs, {
+        let signtable[new_line] = 1
+        call add(hunk, {
+              \ 'id'  : sy#sign#get_next_id(),
               \ 'type': 'SignifyDelete'. old_count,
               \ 'text': substitute(s:sign_delete . old_count, '.*\ze..$', '', ''),
-              \ 'lnum': new_line })
+              \ 'line': new_line })
       else
-        call add(signs, {
+        let signtable[new_line] = 1
+        call add(hunk, {
+              \ 'id'  : sy#sign#get_next_id(),
               \ 'type': 'SignifyDeleteMore',
-              \ 'lnum': new_line,
+              \ 'line': new_line,
               \ 'text': s:sign_delete .'>' })
       endif
 
@@ -244,10 +253,13 @@ function! sy#repo#process_diff(diff) abort
       let offset    = 0
 
       while offset < new_count
-        call add(signs, {
+        let line            = new_line + offset
+        let offset         += 1
+        let signtable[line] = 1
+        call add(hunk, {
+              \ 'id'  : sy#sign#get_next_id(),
               \ 'type': 'SignifyChange',
-              \ 'lnum': new_line + offset })
-        let offset += 1
+              \ 'line': line })
       endwhile
     else
 
@@ -268,15 +280,20 @@ function! sy#repo#process_diff(diff) abort
         let offset    = 0
 
         while offset < (new_count - 1)
-          call add(signs, {
+          let line            = new_line + offset
+          let offset         += 1
+          let signtable[line] = 1
+          call add(hunk, {
+                \ 'id'  : sy#sign#get_next_id(),
                 \ 'type': 'SignifyChange',
-                \ 'lnum': new_line + offset })
-          let offset += 1
+                \ 'line': line })
         endwhile
 
-        call add(signs, {
+        let signtable[new_line] = 1
+        call add(hunk, {
+              \ 'id'  : sy#sign#get_next_id(),
               \ 'type': (removed > 9) ? 'SignifyChangeDeleteMore' : 'SignifyChangeDelete'. removed,
-              \ 'lnum': new_line })
+              \ 'line': new_line })
 
       " lines changed and added:
 
@@ -292,24 +309,31 @@ function! sy#repo#process_diff(diff) abort
         let offset    = 0
 
         while offset < old_count
-          call add(signs, {
+          let line            = new_line + offset
+          let offset         += 1
+          let signtable[line] = 1
+          call add(hunk, {
+                \ 'id'  : sy#sign#get_next_id(),
                 \ 'type': 'SignifyChange',
-                \ 'lnum': new_line + offset })
-          let offset += 1
+                \ 'line': line })
         endwhile
 
         while offset < new_count
-          call add(signs, {
+          let line            = new_line + offset
+          let offset         += 1
+          let signtable[line] = 1
+          call add(hunk, {
+                \ 'id'  : sy#sign#get_next_id(),
                 \ 'type': 'SignifyAdd',
-                \ 'lnum': new_line + offset })
-          let offset += 1
+                \ 'line': line })
         endwhile
       endif
     endif
 
-    call sy#sign#set(signs)
+    call add(hunks, hunk)
   endfor
 
+  call sy#sign#update_signs(hunks, signtable)
   let b:sy.stats = [added, modified, deleted]
 endfunction
 
