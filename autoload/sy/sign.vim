@@ -110,11 +110,9 @@ function! sy#sign#update_signs(hunks, signtable) abort
 endfunction
 
 " Function: #remove_all_signs {{{1
-function! sy#sign#remove_all_signs(bnum) abort
-  let sy = getbufvar(a:bnum, 'sy')
-
+function! sy#sign#remove_all_signs() abort
   if g:signify_sign_overwrite
-    execute 'sign unplace * buffer='. sy.buffer
+    execute 'sign unplace * buffer='. b:sy.buffer
   else
     for hunk in sy.hunks
       for id in hunk.ids
@@ -123,6 +121,6 @@ function! sy#sign#remove_all_signs(bnum) abort
     endfor
   endif
 
-  let sy.hunks = []
-  let sy.stats = [0, 0, 0]
+  let b:sy.hunks = []
+  let b:sy.stats = [0, 0, 0]
 endfunction

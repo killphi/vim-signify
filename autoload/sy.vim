@@ -31,7 +31,14 @@ function! sy#start(path) abort
 
   " new buffer.. add to list of registered files
   if !exists('b:sy') || b:sy.path != a:path
-    let b:sy = { 'path': a:path, 'buffer': bufnr(''), 'active': 0, 'type': 'unknown', 'hunks': [], 'id_top': g:id_top, 'stats': [-1, -1, -1] }
+    let b:sy = {
+          \ 'path'  : a:path,
+          \ 'buffer': bufnr(''),
+          \ 'active': 0,
+          \ 'type'  : 'unknown',
+          \ 'hunks' : [],
+          \ 'id_top': g:id_top,
+          \ 'stats' : [-1, -1, -1] }
     if get(g:, 'signify_disable_by_default')
       return
     endif
@@ -72,54 +79,42 @@ function! sy#start(path) abort
   " update signs
   else
     let diff = sy#repo#get_diff_{b:sy.type}()[1]
-    "if empty(diff)
-      ""call sy#sign#remove_all_signs(b:sy.buffer)
-      "return
-    "endif
     let b:sy.id_top = g:id_top
   endif
 
   if get(g:, 'signify_line_highlight')
-      call sy#highlight#line_enable()
-  else
-      call sy#highlight#line_disable()
+    call sy#highlight#line_enable()
+  else 
+    call sy#highlight#line_disable()
   endif
 
-  "execute 'sign place 99999 line=1 name=SignifyPlaceholder buffer='. b:sy.buffer
-  "call sy#sign#remove_all_signs(b:sy.buffer)
-
-  "if !g:signify_sign_overwrite
-    "call sy#sign#get_others()
-  "endif
   call sy#repo#process_diff(diff)
-  "sign unplace 99999
 
   let b:sy.id_top = (g:id_top - 1)
 endfunction
 
 " Function: #stop {{{1
-function! sy#stop(bnum) abort
-  let bvars = getbufvar(a:bnum, '')
-  if empty(bvars) || !has_key(bvars, 'sy')
+function! sy#stop() abort
+  if !exists('b:sy')
     return
   endif
 
-  call sy#sign#remove_all(a:bnum)
+  call sy#sign#remove_all_signs()
 
   augroup signify
-    execute 'autocmd! * <buffer='. a:bnum .'>'
+    execute printf('autocmd! * <buffer=%d>', b:sy.buffer)
   augroup END
 endfunction
 
 " Function: #toggle {{{1
 function! sy#toggle() abort
-  if !exists('b:sy') || empty(b:sy.path)
+  if !exists('b:sy')
     echomsg 'signify: I cannot sy empty buffers!'
     return
   endif
 
   if b:sy.active
-    call sy#stop(b:sy.buffer)
+    call sy#stop()
     let b:sy.active = 0
     let b:sy.stats = [-1, -1, -1]
   else
