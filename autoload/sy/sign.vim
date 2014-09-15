@@ -14,18 +14,16 @@ endfunction
 
 " Function: #get_current_signs {{{1
 function! sy#sign#get_current_signs() abort
-  " Signs managed by Sy and other plugins.
-  let internal = {}
-  let external = {}
+  let signs = {}
 
   let lang = v:lang
   silent! execute 'language message C'
-
-  redir => signs
+  redir => signlist
     silent! execute 'sign place buffer='. b:sy.buffer
   redir END
+  silent! execute 'language message' lang
 
-  for s in split(signs, '\n')[2:]
+  for s in split(signlist, '\n')[2:]
     let tokens = matchlist(s, '\v^\s+line\=(\d+)\s+id\=(\d+)\s+name\=(.*)$')
     let line   = str2nr(tokens[1])
     let id     = str2nr(tokens[2])
@@ -35,32 +33,27 @@ function! sy#sign#get_current_signs() abort
       " Handle ambiguous signs. Assume you have signs on line 3 and 4.
       " Removing line 3 would lead to the second sign to be shifted up
       " to line 3. Now there are still 2 signs, both one line 3.
-      if has_key(internal, line)
-        execute 'sign unplace' internal[line].id
+      if has_key(signs, line)
+        execute 'sign unplace' signs[line].id
       endif
-      let internal[line] = { 'type': type, 'id': id }
-    else
-      let external[line] = id
+      let signs[line] = { 'type': type, 'id': id }
     endif
   endfor
 
-  silent! execute 'language message' lang
-
-  return [ internal, external ]
+  return signs
 endfunction
 
 " Function: #update_signs {{{1
 function! sy#sign#update_signs(hunks, signtable) abort
   let b:sy.hunks = []
-
-  " Get current Sy and non-Sy signs.
-  let [ internal, external ] = sy#sign#get_current_signs()
+  let cursigns   = sy#sign#get_current_signs()
 
   " Remove obsoleted signs.
-  for line in filter(keys(internal), '!has_key(a:signtable, v:val)')
-    execute 'sign unplace' internal[line].id
+  for line in filter(keys(cursigns), '!has_key(a:signtable, v:val)')
+    execute 'sign unplace' cursigns[line].id
   endfor
 
+  " Iterate over all new signs.
   for hunk in a:hunks
     " Internal data strucure kept for cursor jumps and debugging purposes.
     let syhunk = {
@@ -69,27 +62,18 @@ function! sy#sign#update_signs(hunks, signtable) abort
           \ 'end'  : hunk[-1].line }
 
     for sign in hunk
-      if has_key(external, sign.line)
-        " There is a sign from another plugin on this line already.
-        "   1) preserve external sign
-        "   2) remove external sign and add new Sy sign
-        if !g:signify_sign_overwrite
-          continue
-        endif
-        execute 'sign unplace' external[sign.line]
-      elseif has_key(internal, sign.line)
-        " There is a Sy sign on this line already.
-        "   1) keep the current sign if they're of the same type
-        "   2) update sign with the new type but keep current ID
-        if sign.type == internal[sign.line].type
-          call add(syhunk.ids, internal[sign.line].id)
+      if has_key(cursigns, sign.line)
+        " There is a sign on this line already.
+        if sign.type == cursigns[sign.line].type
+          " Keep current sign since the new one has the same type.
+          call add(syhunk.ids, cursigns[sign.line].id)
           continue
         else
-          let sign.id = internal[sign.line].id
+          " Update sign by overwriting the ID of the current sign.
+          let sign.id = cursigns[sign.line].id
         endif
       endif
 
-      " Empty line. Add new sign.
       if sign.type =~# 'SignifyDelete'
         execute printf('sign define %s text=%s texthl=SignifySignDelete linehl=%s',
               \ sign.type,
@@ -111,15 +95,11 @@ endfunction
 
 " Function: #remove_all_signs {{{1
 function! sy#sign#remove_all_signs() abort
-  if g:signify_sign_overwrite
-    execute 'sign unplace * buffer='. b:sy.buffer
-  else
-    for hunk in b:sy.hunks
-      for id in hunk.ids
-        execute 'sign unplace' id
-      endfor
+  for hunk in b:sy.hunks
+    for id in hunk.ids
+      execute 'sign unplace' id
     endfor
-  endif
+  endfor
 
   let b:sy.hunks = []
   let b:sy.stats = [0, 0, 0]

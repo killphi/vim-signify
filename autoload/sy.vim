@@ -3,14 +3,6 @@
 scriptencoding utf-8
 
 " Init: values {{{1
-let g:signify_sign_overwrite = get(g:, 'signify_sign_overwrite')
-if g:signify_sign_overwrite && (v:version < 703 || (v:version == 703 && !has('patch596')))
-  echohl WarningMsg
-  echomsg 'signify: Sign overwriting was disabled. See :help signify-option-sign_overwrite'
-  echohl NONE
-  let g:signify_sign_overwrite = 0
-endif
-
 let g:id_top = 0x100
 let g:sy_cache = {}
 
