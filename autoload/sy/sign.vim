@@ -114,7 +114,7 @@ function! sy#sign#remove_all_signs() abort
   if g:signify_sign_overwrite
     execute 'sign unplace * buffer='. b:sy.buffer
   else
-    for hunk in sy.hunks
+    for hunk in b:sy.hunks
       for id in hunk.ids
         execute 'sign unplace' id
       endfor
