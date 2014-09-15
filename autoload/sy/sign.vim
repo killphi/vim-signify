@@ -32,9 +32,9 @@ function! sy#sign#get_current_signs() abort
     let type   = tokens[3]
 
     if type =~# '^Signify'
-      " Assume you have signs on line 3 and 4. Removing line 3 would
-      " lead to the second sign to be shifted up to line 3. Now there
-      " are still 2 signs, both one line 3. Handle this case.
+      " Handle ambiguous signs. Assume you have signs on line 3 and 4.
+      " Removing line 3 would lead to the second sign to be shifted up
+      " to line 3. Now there are still 2 signs, both one line 3.
       if has_key(internal, line)
         execute 'sign unplace' internal[line].id
       endif
@@ -69,35 +69,40 @@ function! sy#sign#update_signs(hunks, signtable) abort
           \ 'end'  : hunk[-1].line }
 
     for sign in hunk
-      " Skip signs from other plugins?
       if has_key(external, sign.line)
-        if g:signify_sign_overwrite
-          execute 'sign unplace' external[sign.line]
-        else
+        " There is a sign from another plugin on this line already.
+        "   1) preserve external sign
+        "   2) remove external sign and add new Sy sign
+        if !g:signify_sign_overwrite
           continue
         endif
-      endif
-
-      " There is a sign on this line already.
-      if has_key(internal, sign.line)
-        " The current and new sign are of the same type. Only update the hunk.
+        execute 'sign unplace' external[sign.line]
+      elseif has_key(internal, sign.line)
+        " There is a Sy sign on this line already.
+        "   1) keep the current sign if they're of the same type
+        "   2) update sign with the new type but keep current ID
         if sign.type == internal[sign.line].type
           call add(syhunk.ids, internal[sign.line].id)
           continue
         else
-          execute 'sign unplace' internal[sign.line].id
+          let sign.id = internal[sign.line].id
         endif
       endif
 
-      " Virgin line: set sign.
-      call add(syhunk.ids, sign.id)
-
+      " Empty line. Add new sign.
       if sign.type =~# 'SignifyDelete'
-        execute 'sign define '. sign.type .' text='. sign.text .' texthl=SignifySignDelete linehl='. s:delete_highlight[g:signify_line_highlight]
-        execute 'sign place' sign.id 'line='. sign.line 'name='. sign.type 'buffer='. b:sy.buffer
-      else
-        execute 'sign place' sign.id 'line='. sign.line 'name='. sign.type 'buffer='. b:sy.buffer
+        execute printf('sign define %s text=%s texthl=SignifySignDelete linehl=%s',
+              \ sign.type,
+              \ sign.text,
+              \ s:delete_highlight[g:signify_line_highlight])
       endif
+      execute printf('sign place %d line=%d name=%s buffer=%s',
+            \ sign.id,
+            \ sign.line,
+            \ sign.type,
+            \ b:sy.buffer)
+
+      call add(syhunk.ids, sign.id)
     endfor
 
     call add(b:sy.hunks, syhunk)
