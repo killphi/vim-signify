@@ -6,8 +6,6 @@ scriptencoding utf-8
 let g:id_top = 0x100
 let g:sy_cache = {}
 
-sign define SignifyPlaceholder text=. texthl=SignifySignChange linehl=
-
 " Function: #start {{{1
 function! sy#start(path) abort
   if g:signify_locked
