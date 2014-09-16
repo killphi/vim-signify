@@ -14,7 +14,8 @@ endfunction
 
 " Function: #get_current_signs {{{1
 function! sy#sign#get_current_signs() abort
-  let signs = {}
+  let internal = {}
+  let external = {}
 
   let lang = v:lang
   silent! execute 'language message C'
@@ -23,34 +24,38 @@ function! sy#sign#get_current_signs() abort
   redir END
   silent! execute 'language message' lang
 
-  for s in split(signlist, '\n')[2:]
-    let tokens = matchlist(s, '\v^\s+line\=(\d+)\s+id\=(\d+)\s+name\=(.*)$')
+  for signline in split(signlist, '\n')[2:]
+    let tokens = matchlist(signline, '\v^\s+line\=(\d+)\s+id\=(\d+)\s+name\=(.*)$')
     let line   = str2nr(tokens[1])
     let id     = str2nr(tokens[2])
     let type   = tokens[3]
+
+    "echo 'DEBUG: '. s
 
     if type =~# '^Signify'
       " Handle ambiguous signs. Assume you have signs on line 3 and 4.
       " Removing line 3 would lead to the second sign to be shifted up
       " to line 3. Now there are still 2 signs, both one line 3.
-      if has_key(signs, line)
-        execute 'sign unplace' signs[line].id
+      if has_key(internal, line)
+        execute 'sign unplace' internal[line].id
       endif
-      let signs[line] = { 'type': type, 'id': id }
+      let internal[line] = { 'type': type, 'id': id }
+    else
+      let external[line] = id
     endif
   endfor
 
-  return signs
+  return [internal, external]
 endfunction
 
 " Function: #update_signs {{{1
 function! sy#sign#update_signs(hunks, signtable) abort
-  let b:sy.hunks = []
-  let cursigns   = sy#sign#get_current_signs()
+  let b:sy.hunks           = []
+  let [internal, external] = sy#sign#get_current_signs()
 
   " Remove obsoleted signs.
-  for line in filter(keys(cursigns), '!has_key(a:signtable, v:val)')
-    execute 'sign unplace' cursigns[line].id
+  for line in filter(keys(internal), '!has_key(a:signtable, v:val)')
+    execute 'sign unplace' internal[line].id
   endfor
 
   " Iterate over all new signs.
@@ -62,15 +67,21 @@ function! sy#sign#update_signs(hunks, signtable) abort
           \ 'end'  : hunk[-1].line }
 
     for sign in hunk
-      if has_key(cursigns, sign.line)
+      if has_key(external, sign.line)
+        if has_key(internal, sign.line)
+          " Remove Sy signs from lines with other signs.
+          execute 'sign unplace' internal[sign.line].id
+        endif
+        continue
+      elseif has_key(internal, sign.line)
         " There is a sign on this line already.
-        if sign.type == cursigns[sign.line].type
+        if sign.type == internal[sign.line].type
           " Keep current sign since the new one has the same type.
-          call add(syhunk.ids, cursigns[sign.line].id)
+          call add(syhunk.ids, internal[sign.line].id)
           continue
         else
           " Update sign by overwriting the ID of the current sign.
-          let sign.id = cursigns[sign.line].id
+          let sign.id = internal[sign.line].id
         endif
       endif
 
