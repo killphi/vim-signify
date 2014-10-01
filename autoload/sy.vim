@@ -78,7 +78,7 @@ function! sy#start(path) abort
     call sy#highlight#line_disable()
   endif
 
-  call sy#repo#process_diff(diff)
+  call sy#sign#process_diff(diff)
 
   let b:sy.id_top = (g:id_top - 1)
 endfunction
