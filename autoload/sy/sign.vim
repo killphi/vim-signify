@@ -49,7 +49,6 @@ endfunction
 " Function: #process_diff {{{1
 function! sy#sign#process_diff(diff) abort
   let [added, modified, deleted] = [0, 0, 0]
-  let hunks                      = []
   let b:sy.hunks                 = []
   let signtable                  = {}
 
