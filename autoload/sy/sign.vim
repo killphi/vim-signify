@@ -48,7 +48,7 @@ endfunction
 
 " Function: #process_diff {{{1
 function! sy#sign#process_diff(diff) abort
-  let g:sy_signtable             = {}
+  let b:sy.signtable             = {}
   let b:sy.hunks                 = []
   let [added, modified, deleted] = [0, 0, 0]
 
@@ -56,7 +56,7 @@ function! sy#sign#process_diff(diff) abort
 
   " Determine where we have to put our signs.
   for line in filter(split(a:diff, '\n'), 'v:val =~ "^@@ "')
-    let g:sy_lines = []
+    let b:sy.lines = []
     let ids        = []
 
     let tokens = matchlist(line, '^@@ -\v(\d+),?(\d*) \+(\d+),?(\d*)')
@@ -169,13 +169,13 @@ function! sy#sign#process_diff(diff) abort
     if !empty(ids)
       call add(b:sy.hunks, {
             \ 'ids'  : ids,
-            \ 'start': g:sy_lines[0],
-            \ 'end'  : g:sy_lines[-1] })
+            \ 'start': b:sy.lines[0],
+            \ 'end'  : b:sy.lines[-1] })
     endif
   endfor
 
   " Remove obsoleted signs.
-  for line in filter(keys(g:sy_internal), '!has_key(g:sy_signtable, v:val)')
+  for line in filter(keys(g:sy_internal), '!has_key(b:sy.signtable, v:val)')
     execute 'sign unplace' g:sy_internal[line].id
   endfor
 
@@ -183,8 +183,8 @@ function! sy#sign#process_diff(diff) abort
 endfunction
 
 function! s:add_sign(line, type, ...) abort
-  call add(g:sy_lines, a:line)
-  let g:sy_signtable[a:line] = 1
+  call add(b:sy.lines, a:line)
+  let b:sy.signtable[a:line] = 1
 
   if has_key(g:sy_internal, a:line)
     " There is a sign on this line already.
