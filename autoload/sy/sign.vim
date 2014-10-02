@@ -78,13 +78,10 @@ function! sy#sign#process_diff(diff) abort
       while offset < new_count
         let line    = new_line + offset
         let offset += 1
-        if s:external_sign_present(line)
-          continue
-        endif
-        call add(ids, s:add_sign(line, 'SignifyAdd'))
+        if s:external_sign_present(line) | continue | endif
+        call add(ids, s:add_sign(signtable, line, 'SignifyAdd'))
         call add(lines, line)
-        let added          += 1
-        let signtable[line] = 1
+        let added += 1
       endwhile
 
     " 2 lines removed:
@@ -93,22 +90,17 @@ function! sy#sign#process_diff(diff) abort
     " -this is line 6
     " -this is line 7
     elseif (old_count >= 1) && (new_count == 0)
-      if s:external_sign_present(new_line)
-        continue
-      endif
+      if s:external_sign_present(new_line) | continue | endif
       let deleted += old_count
       if new_line == 0
-        call add(ids, s:add_sign(1, 'SignifyRemoveFirstLine'))
+        call add(ids, s:add_sign(signtable, 1, 'SignifyRemoveFirstLine'))
         call add(lines, new_line)
-        let signtable.1 = 1
       elseif old_count <= 99
-        call add(ids, s:add_sign(new_line, 'SignifyDelete'. old_count, substitute(s:sign_delete . old_count, '.*\ze..$', '', '')))
+        call add(ids, s:add_sign(signtable, new_line, 'SignifyDelete'. old_count, substitute(s:sign_delete . old_count, '.*\ze..$', '', '')))
         call add(lines, new_line)
-        let signtable[new_line] = 1
       else
-        call add(ids, s:add_sign(new_line, 'SignifyDeleteMore', s:sign_delete .'>'))
+        call add(ids, s:add_sign(signtable, new_line, 'SignifyDeleteMore', s:sign_delete .'>'))
         call add(lines, new_line)
-        let signtable[new_line] = 1
       endif
 
     " 2 lines changed:
@@ -124,16 +116,13 @@ function! sy#sign#process_diff(diff) abort
       while offset < new_count
         let line    = new_line + offset
         let offset += 1
-        if s:external_sign_present(line)
-          continue
-        endif
-        call add(ids, s:add_sign(line, 'SignifyChange'))
+        if s:external_sign_present(line) | continue | endif
+        call add(ids, s:add_sign(signtable, line, 'SignifyChange'))
         call add(lines, line)
-        let signtable[line] = 1
       endwhile
     else
 
-      " 2 lines changed; 2 lines deleted:
+      " 2 lines changed; 2 lines removed:
 
       " @@ -5,4 +5,2 @@ this is line 4
       " -this is line 5
@@ -144,25 +133,20 @@ function! sy#sign#process_diff(diff) abort
       " +this os line 6
       if old_count > new_count
         let modified += new_count
-        let removed   = (old_count - new_count)
+        let removed   = old_count - new_count
         let deleted  += removed
         let offset    = 0
-        while offset < (new_count - 1)
+        while offset < new_count - 1
           let line    = new_line + offset
           let offset += 1
-          if s:external_sign_present(line)
-            continue
-          endif
-          call add(ids, s:add_sign(line, 'SignifyChange'))
+          if s:external_sign_present(line) | continue | endif
+          call add(ids, s:add_sign(signtable, line, 'SignifyChange'))
           call add(lines, line)
-          let signtable[line] = 1
         endwhile
-        if s:external_sign_present(new_line)
-          continue
-        endif
-        call add(ids, s:add_sign(new_line, (removed > 9) ? 'SignifyChangeDeleteMore' : 'SignifyChangeDelete'. removed))
-        call add(lines, new_line)
-        let signtable[new_line] = 1
+        let line = new_line + offset
+        if s:external_sign_present(line) | continue | endif
+        call add(ids, s:add_sign(signtable, line, (removed > 9) ? 'SignifyChangeDeleteMore' : 'SignifyChangeDelete'. removed))
+        call add(lines, line)
 
       " lines changed and added:
 
@@ -177,23 +161,17 @@ function! sy#sign#process_diff(diff) abort
         while offset < old_count
           let line    = new_line + offset
           let offset += 1
-          if s:external_sign_present(line)
-            continue
-          endif
-          call add(ids, s:add_sign(line, 'SignifyChange'))
+          if s:external_sign_present(line) | continue | endif
+          call add(ids, s:add_sign(signtable, line, 'SignifyChange'))
           call add(lines, line)
-          let added          += 1
-          let signtable[line] = 1
+          let added += 1
         endwhile
         while offset < new_count
           let line    = new_line + offset
           let offset += 1
-          if s:external_sign_present(line)
-            continue
-          endif
-          call add(ids, s:add_sign(line, 'SignifyAdd'))
+          if s:external_sign_present(line) | continue | endif
+          call add(ids, s:add_sign(signtable, line, 'SignifyAdd'))
           call add(lines, line)
-          let signtable[line] = 1
         endwhile
       endif
     endif
@@ -214,7 +192,9 @@ function! sy#sign#process_diff(diff) abort
   let b:sy.stats = [added, modified, deleted]
 endfunction
 
-function! s:add_sign(line, type, ...) abort
+function! s:add_sign(signtable, line, type, ...) abort
+  let a:signtable[a:line] = 1
+
   if has_key(g:sy_internal, a:line)
     " There is a sign on this line already.
     if a:type == g:sy_internal[a:line].type
