@@ -73,13 +73,13 @@ function! sy#sign#process_diff(diff) abort
     " +this is line 5
     " +this is line 5
     if (old_count == 0) && (new_count >= 1)
+      let added += new_count
       let offset = 0
       while offset < new_count
         let line    = new_line + offset
         let offset += 1
         if s:external_sign_present(line) | continue | endif
         call add(ids, s:add_sign(line, 'SignifyAdd'))
-        let added += 1
       endwhile
 
     " 2 lines removed:
