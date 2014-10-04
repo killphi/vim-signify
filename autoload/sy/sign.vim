@@ -15,8 +15,8 @@ endfunction
 
 " Function: #get_current_signs {{{1
 function! sy#sign#get_current_signs() abort
-  let g:sy_internal = {}
-  let g:sy_external = {}
+  let b:sy.internal = {}
+  let b:sy.external = {}
 
   let lang = v:lang
   silent! execute 'language message C'
@@ -35,12 +35,12 @@ function! sy#sign#get_current_signs() abort
       " Handle ambiguous signs. Assume you have signs on line 3 and 4.
       " Removing line 3 would lead to the second sign to be shifted up
       " to line 3. Now there are still 2 signs, both one line 3.
-      if has_key(g:sy_internal, line)
-        execute 'sign unplace' g:sy_internal[line].id
+      if has_key(b:sy.internal, line)
+        execute 'sign unplace' b:sy.internal[line].id
       endif
-      let g:sy_internal[line] = { 'type': type, 'id': id }
+      let b:sy.internal[line] = { 'type': type, 'id': id }
     else
-      let g:sy_external[line] = id
+      let b:sy.external[line] = id
     endif
   endfor
 endfunction
@@ -175,8 +175,8 @@ function! sy#sign#process_diff(diff) abort
   endfor
 
   " Remove obsoleted signs.
-  for line in filter(keys(g:sy_internal), '!has_key(b:sy.signtable, v:val)')
-    execute 'sign unplace' g:sy_internal[line].id
+  for line in filter(keys(b:sy.internal), '!has_key(b:sy.signtable, v:val)')
+    execute 'sign unplace' b:sy.internal[line].id
   endfor
 
   let b:sy.stats = [added, modified, deleted]
@@ -186,14 +186,14 @@ function! s:add_sign(line, type, ...) abort
   call add(b:sy.lines, a:line)
   let b:sy.signtable[a:line] = 1
 
-  if has_key(g:sy_internal, a:line)
+  if has_key(b:sy.internal, a:line)
     " There is a sign on this line already.
-    if a:type == g:sy_internal[a:line].type
+    if a:type == b:sy.internal[a:line].type
       " Keep current sign since the new one is of the same type.
-      return g:sy_internal[a:line].id
+      return b:sy.internal[a:line].id
     else
       " Update sign by overwriting the ID of the current sign.
-      let id = g:sy_internal[a:line].id
+      let id = b:sy.internal[a:line].id
     endif
   endif
 
@@ -217,10 +217,10 @@ function! s:add_sign(line, type, ...) abort
 endfunction
 
 function! s:external_sign_present(line) abort
-  if has_key(g:sy_external, a:line)
-    if has_key(g:sy_internal, a:line)
+  if has_key(b:sy.external, a:line)
+    if has_key(b:sy.internal, a:line)
       " Remove Sy signs from lines with other signs.
-      execute 'sign unplace' g:sy_internal[a:line].id
+      execute 'sign unplace' b:sy.internal[a:line].id
     endif
     return 1
   endif
