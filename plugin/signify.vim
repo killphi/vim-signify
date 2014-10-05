@@ -89,3 +89,24 @@ function! s:save()
     write
   endif
 endfunction
+
+" Text object: ih {{{1
+function! s:hunk_text_object() abort
+  if !exists('b:sy')
+    return
+  endif
+
+  let lnum  = line('.')
+  let hunks = filter(copy(b:sy.hunks), 'v:val.start <= lnum && v:val.end >= lnum')
+
+  if empty(hunks)
+    return
+  endif
+
+  execute hunks[0].start
+  normal! V
+  execute hunks[0].end
+endfunction
+
+onoremap <silent> ic :<c-u>call <sid>hunk_text_object()<cr>
+xnoremap <silent> ic :<c-u>call <sid>hunk_text_object()<cr>
