@@ -9,20 +9,17 @@ let s:sign_change            = get(g:, 'signify_sign_change',            '!')
 let s:sign_changedelete      = get(g:, 'signify_sign_changedelete',      s:sign_change)
 let s:sign_show_count        = get(g:, 'signify_sign_show_count',        1)
 
-" Function: #setup {{{1
-function! sy#highlight#setup() abort
-  highlight default link SignifyLineAdd             DiffAdd
-  highlight default link SignifyLineDelete          DiffDelete
-  highlight default link SignifyLineDeleteFirstLine SignifyLineDelete
-  highlight default link SignifyLineChange          DiffChange
-  highlight default link SignifyLineChangeDelete    SignifyLineChange
+highlight default link SignifyLineAdd             DiffAdd
+highlight default link SignifyLineDelete          DiffDelete
+highlight default link SignifyLineDeleteFirstLine SignifyLineDelete
+highlight default link SignifyLineChange          DiffChange
+highlight default link SignifyLineChangeDelete    SignifyLineChange
 
-  highlight default link SignifySignAdd             DiffAdd
-  highlight default link SignifySignDelete          DiffDelete
-  highlight default link SignifySignDeleteFirstLine SignifySignDelete
-  highlight default link SignifySignChange          DiffChange
-  highlight default link SignifySignChangeDelete    SignifySignChange
-endfunction
+highlight default link SignifySignAdd             DiffAdd
+highlight default link SignifySignDelete          DiffDelete
+highlight default link SignifySignDeleteFirstLine SignifySignDelete
+highlight default link SignifySignChange          DiffChange
+highlight default link SignifySignChangeDelete    SignifySignChange
 
 " Function: #line_enable {{{1
 function! sy#highlight#line_enable() abort
@@ -70,11 +67,6 @@ endfunction
 
 " Function: #line_toggle {{{1
 function! sy#highlight#line_toggle() abort
-  if !exists('b:sy')
-    echomsg 'signify: I cannot detect any changes!'
-    return
-  endif
-
   if get(g:, 'signify_line_highlight')
     call sy#highlight#line_disable()
   else

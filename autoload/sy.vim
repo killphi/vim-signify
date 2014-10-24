@@ -105,7 +105,7 @@ endfunction
 " Function: #toggle {{{1
 function! sy#toggle() abort
   if !exists('b:sy')
-    echomsg 'signify: I cannot sy empty buffers!'
+    call sy#start()
     return
   endif
 
